@@ -8,12 +8,14 @@ const DEFAULT_BUTTON_LABEL = 'View';
 
 let datas = {
   originalTop: 'data-smartbanner-original-top',
-  originalMarginTop: 'data-smartbanner-original-margin-top'
+  originalMarginTop: 'data-smartbanner-original-margin-top',
+  smartBannerHeight: 84
 };
 
 function handleExitClick(event, self) {
   self.exit();
   event.preventDefault();
+  removeFixedMargin();
 }
 
 function handleClickout(event, self) {
@@ -24,6 +26,46 @@ function handleJQueryMobilePageLoad(event) {
   if (!this.positioningDisabled) {
     setContentPosition(event.data.height);
   }
+}
+
+/**
+ * https://github.com/ain/smartbanner.js/issues/140
+ * Add fixed margin to top of the page for pages with fixed navBar
+ * */
+function addFixedMargin() {
+  const styleEl = document.createElement("STYLE");
+  styleEl.id = "smartbanner_fixed_margin";
+  styleEl.innerHTML = `html{margin-top: ${datas.smartBannerHeight}px !important;}body{margin-top: ${datas.smartBannerHeight}px !important;}`;
+  document.body.appendChild(styleEl);
+}
+
+/**
+ * https://github.com/ain/smartbanner.js/issues/140
+ * Remove fixed margin to top of the page for pages with fixed navBar
+ * */
+function removeFixedMargin() {
+  const styleEl = document.getElementById("smartbanner_fixed_margin");
+  if (styleEl) {
+    styleEl.remove();
+  }
+  const fixedNavBar = findFixedNavBar();
+  if (fixedNavBar) {
+    fixedNavBar.style.top = '0px';
+  }
+}
+
+/**
+ * https://github.com/ain/smartbanner.js/issues/140
+ * Find fixed margin to top of the page for pages with fixed navBar
+ * */
+
+function findFixedNavBar() {
+  const nav = document.querySelector("nav");
+  if (nav && window.getComputedStyle(nav)?.getPropertyValue('position') === 'fixed') {
+    return nav;
+  }
+  // Can be more variants of fixed nav bars in <div> etc.
+  return null
 }
 
 function addEventListeners(self) {
@@ -227,6 +269,12 @@ export default class SmartBanner {
     // nor by defined includeUserAgentRegex
     if (!(this.platformEnabled || this.userAgentIncluded)) {
       return false;
+    }
+
+    const fixedNavBar = findFixedNavBar();
+    if (fixedNavBar) {
+      addFixedMargin(datas.smartBannerHeight);
+      fixedNavBar.style.top = datas.smartBannerHeight + "px";
     }
 
     let bannerDiv = document.createElement('div');
